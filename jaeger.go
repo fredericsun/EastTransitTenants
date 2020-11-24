@@ -214,83 +214,6 @@ func writeTraceToFile(trace []model.Span, path string) error {
 	}, path)
 }
 
-func findBottleNeck(spans []MySpan, spanToServ map[string]string) string {
-	serExc := make(map[string]time.Duration)
-	for _, span := range spans {
-		serExc[span.Process.GetServiceName()] += span.Duration
-		for _, ref := range span.References {
-			if ref["RefType"] == "CHILD_OF" {
-				serExc[spanToServ[ref["SpanID"]]] -= span.Duration
-			}
-		}
-	}
-
-	max := time.Second * 0
-	res := ""
-
-	for serv, dur := range serExc {
-		if dur > max {
-			max = dur
-			res = serv
-		}
-	}
-
-	return res
-}
-
-func findCriticalPaths(root string, callGraph map[string][]string, bottlenecks map[string]bool) []string {
-	stack := make([]string, 0)
-	potential := make(map[string]bool)
-	critical := make(map[string]bool)
-	parent := make(map[string]string)
-
-	stack = append(stack, root)
-	for len(stack) > 0 {
-		n := len(stack) - 1
-		service := stack[n]
-		stack = stack[:n]
-		if _, ok := bottlenecks[service]; ok {
-
-		} else if _, ok := potential[service]; ok {
-
-		}
-	}
-}
-
-func cleanupTraces(traces map[string][]MySpan) []string {
-	spanToServ := make(map[string]string)
-	for _, spans := range traces {
-		for _, span := range spans {
-			spanToServ[span.SpanID] = span.Process.GetServiceName()
-		}
-		break
-	}
-
-	bottlenecks := make(map[string]bool)
-	for _, spans := range traces {
-		bottleneck := findBottleNeck(spans, spanToServ)
-		bottlenecks[bottleneck] = true
-	}
-
-	callGraph := make(map[string][]string)
-	root := ""
-	for _, spans := range traces {
-		for _, span := range spans {
-			serv := span.Process.GetServiceName()
-			if len(span.References) > 0 {
-				root = serv
-			}
-			for _, ref := range span.References {
-				parentServ := spanToServ[ref["SpanID"]]
-				callGraph[parentServ] = append(callGraph[parentServ], serv)
-			}
-		}
-		break
-	}
-
-	return findCriticalPaths(root, callGraph, bottlenecks)
-}
-
 func main() {
 	// flag.Parse()
 
@@ -303,7 +226,7 @@ func main() {
 	// res, err := jc.QueryServices()
 
 	// Query traces
-	res, err := jc.QueryTraces("ts-ui-dashboard.default", "", time.Now().Add(time.Minute*-(10)), 0)
+	_, err := jc.QueryTraces("ts-ui-dashboard.default", "", time.Now().Add(time.Minute*-(10)), 0)
 
 	if err != nil {
 		fmt.Println(err)
