@@ -1,6 +1,10 @@
 package main
 
-import "time"
+import (
+	"encoding/json"
+	"fmt"
+	"time"
+)
 
 func findBottleNeck(spans []MySpan, spanToServ map[string]string) string {
 	serExc := make(map[string]time.Duration)
@@ -84,7 +88,7 @@ func findCriticalPaths(root string, callGraph map[string][]string, bottlenecks m
 	return criticalPath
 }
 
-func cleanupTraces(traces map[string][]MySpan) []string {
+func CleanupTraces(traces map[string][]MySpan) []string {
 	spanToServ := make(map[string]string)
 	for _, spans := range traces {
 		for _, span := range spans {
@@ -98,6 +102,8 @@ func cleanupTraces(traces map[string][]MySpan) []string {
 		bottleneck := findBottleNeck(spans, spanToServ)
 		bottlenecks[bottleneck] = true
 	}
+	bin, _ := json.Marshal(bottlenecks)
+	fmt.Println(bin)
 
 	callGraph := make(map[string][]string)
 	root := ""

@@ -1,13 +1,27 @@
-package easttransittenants
+package main
 
-import "time"
+import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"path/filepath"
+	"time"
+)
 
-func constructTrainingData(spans []MySpan, load int) {
+type ServiceMetric struct {
+	SelfPercent  float64
+	TotalPercent float64
+	CountPercent float64
+	BottleNeck   bool
+	TotalDur     int64
+	TotalService int
+	TotalSpan    int
+	Load         int
+}
 
-	serSelfPercent := make(map[string]float64)
-	serTotalPercent := make(map[string]float64)
-	serCountPercent := make(map[string]float64)
-	serCand := make(map[string]bool)
+func ConstructTrainingData(spans []MySpan, load int) {
+
+	serMetric := make(map[string]ServiceMetric)
 
 	serExc := make(map[string]time.Duration)
 	serDur := make(map[string]time.Duration)
@@ -52,13 +66,29 @@ func constructTrainingData(spans []MySpan, load int) {
 	totalDur := latestEndTime.UnixNano() - earliestStartTime.UnixNano()
 
 	for serv, _ := range serExc {
-		serCountPercent[serv] = float64(serCount[serv]) / float64(totalSpan)
-		serSelfPercent[serv] = float64(serExc[serv].Nanoseconds()) / float64(serDur[serv].Nanoseconds())
-		serTotalPercent[serv] = float64(serExc[serv].Nanoseconds()) / float64(totalDur)
+		isBottleNeck := false
 		if res == serv {
-			serCand[serv] = true
-		} else {
-			serCand[serv] = false
+			isBottleNeck = true
 		}
+		serviceMetric := ServiceMetric{
+			SelfPercent:  float64(serExc[serv].Nanoseconds()) / float64(serDur[serv].Nanoseconds()),
+			TotalPercent: float64(serExc[serv].Nanoseconds()) / float64(totalDur),
+			CountPercent: float64(serCount[serv]) / float64(totalSpan),
+			BottleNeck:   isBottleNeck,
+			TotalDur:     totalDur,
+			TotalService: totalSer,
+			TotalSpan:    totalSpan,
+			Load:         load,
+		}
+		serMetric[serv] = serviceMetric
+	}
+	result, err := json.Marshal(serMetric)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if err := ioutil.WriteFile(filepath.Join("data", "training"), result, 0644); err != nil {
+		fmt.Println(err)
+		return
 	}
 }

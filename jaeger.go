@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -212,32 +211,4 @@ func writeTraceToFile(trace []model.Span, path string) error {
 	return writeChunksToFile(&api_v2.SpansResponseChunk{
 		Spans: trace,
 	}, path)
-}
-
-func main() {
-	// flag.Parse()
-
-	// defer zLogger.Sync()
-
-	// Create jaeger service client
-	jc := NewJaegerClient("localhost:16686")
-
-	// Quert all services
-	// res, err := jc.QueryServices()
-
-	// Query traces
-	_, err := jc.QueryTraces("ts-ui-dashboard.default", "", time.Now().Add(time.Minute*-(10)), 0)
-
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	// For print purpose
-	// parsed, err := json.Marshal(res)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
-	// fmt.Println(string(parsed))
 }
