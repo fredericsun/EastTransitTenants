@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"time"
 )
 
@@ -46,13 +44,13 @@ func findCriticalPaths(root string, callGraph map[string][]string, bottlenecks m
 	for len(stack) > 0 {
 		n := len(stack) - 1
 		servParent := stack[n]
+		stack = stack[:n]
 		service, from := servParent.service, servParent.parent
 		if _, ok := done[service]; ok {
 			continue
 		}
 		done[service] = true
 		parent[service] = from
-		stack = stack[:n]
 		if _, ok := bottlenecks[service]; ok {
 			critical[service] = true
 
@@ -88,6 +86,15 @@ func findCriticalPaths(root string, callGraph map[string][]string, bottlenecks m
 	return criticalPath
 }
 
+func exists(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
 func CleanupTraces(traces map[string][]MySpan) []string {
 	spanToServ := make(map[string]string)
 	for _, spans := range traces {
@@ -102,26 +109,30 @@ func CleanupTraces(traces map[string][]MySpan) []string {
 		bottleneck := findBottleNeck(spans, spanToServ)
 		bottlenecks[bottleneck] = true
 	}
-	bin, _ := json.Marshal(bottlenecks)
-	fmt.Println(bin)
+	// fmt.Println(bottlenecks)
 
 	callGraph := make(map[string][]string)
 	root := ""
 	for _, spans := range traces {
 		for _, span := range spans {
 			serv := span.Process.GetServiceName()
-			if len(span.References) > 0 {
+			if len(span.References) == 0 {
 				root = serv
 			}
 			for _, ref := range span.References {
 				parentServ := spanToServ[ref["SpanID"]]
-				if parentServ != serv {
+				if parentServ != serv && !exists(serv, callGraph[parentServ]) {
 					callGraph[parentServ] = append(callGraph[parentServ], serv)
 				}
 			}
 		}
-		break
+		if _, ok := callGraph[""]; !ok {
+			break
+		}
+		callGraph = make(map[string][]string)
 	}
+	// fmt.Println(root)
+	// fmt.Println(callGraph)
 
 	return findCriticalPaths(root, callGraph, bottlenecks)
 }
