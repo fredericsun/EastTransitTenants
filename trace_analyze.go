@@ -128,16 +128,46 @@ func exists(a string, list []string) bool {
 	return false
 }
 
+func CleanupTrace(spans []MySpan) []string {
+	bottlenecks := make(map[string]bool)
+	for _, bottleneck := range findBottleNeck(spans) {
+		bottlenecks[bottleneck] = true
+	}
+
+	callGraph := make(map[string][]string)
+	root := ""
+
+	spanToServ := make(map[string]string)
+	for _, span := range spans {
+		spanToServ[span.SpanID] = span.Process.GetServiceName()
+	}
+
+	for _, span := range spans {
+		serv := span.Process.GetServiceName()
+		if len(span.References) == 0 {
+			root = serv
+		}
+		for _, ref := range span.References {
+			parentServ := spanToServ[ref["SpanID"]]
+			if parentServ != serv && !exists(serv, callGraph[parentServ]) {
+				callGraph[parentServ] = append(callGraph[parentServ], serv)
+			}
+		}
+	}
+
+	callGraph = make(map[string][]string)
+
+	return findCriticalPaths(root, callGraph, bottlenecks)
+}
+
 func CleanupTraces(traces map[string][]MySpan) []string {
 	bottlenecks := make(map[string]bool)
 	for _, spans := range traces {
 		found := findBottleNeck(spans)
-		// fmt.Printf("%s: %s\n", id, bottleneck)
 		for _, bottleneck := range found {
 			bottlenecks[bottleneck] = true
 		}
 	}
-	// fmt.Println(bottlenecks)
 
 	callGraph := make(map[string][]string)
 	root := ""
@@ -164,8 +194,6 @@ func CleanupTraces(traces map[string][]MySpan) []string {
 		}
 		callGraph = make(map[string][]string)
 	}
-	// fmt.Println(root)
-	// fmt.Println(callGraph)
 
 	return findCriticalPaths(root, callGraph, bottlenecks)
 }

@@ -16,7 +16,7 @@ type ServiceMetric struct {
 	BottleNeck   bool
 }
 
-func ConstructTrainingData(spans []MySpan, load int) []ServiceMetric {
+func ConstructTrainingData(spans []MySpan, load int, criticalPath []string) []ServiceMetric {
 
 	var serMetric []ServiceMetric
 
@@ -47,21 +47,10 @@ func ConstructTrainingData(spans []MySpan, load int) []ServiceMetric {
 			}
 		}
 	}
-	max := time.Second * 0
-	res := ""
-	candidates := make(map[string]bool)
 
-	for serv, dur := range serExc {
-		if dur > max {
-			max = dur
-			res = serv
-		}
-	}
-	candidates[res] = true
-	for serv, dur := range serExc {
-		if float64(dur.Nanoseconds()) >= float64(max.Nanoseconds())*0.7 {
-			candidates[serv] = true
-		}
+	candidates := make(map[string]bool)
+	for _, serv := range criticalPath {
+		candidates[serv] = true
 	}
 
 	// request information
