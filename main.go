@@ -101,8 +101,8 @@ func main() {
 
 	toRun := make(map[string]RequstData)
 	toRun["search_tickets"] = RequstData{
-		url:  "http://35.225.46.132:32677/api/v1/travelplanservice/travelPlan/cheapest",
-		body: []byte(`{"startingPlace": "Shang Hai", "endPlace": "Su Zhou", "departureTime": "2020-11-28"}`),
+		url:  "http://35.225.46.132:32677/api/v1/travel2service/trips/left",
+		body: []byte(`{"startingPlace":"Shang Hai","endPlace":"Tai Yuan","departureTime":"2020-12-21"}`),
 	}
 	toRun["get_orders"] = RequstData{
 		url:  "http://35.225.46.132:32677/api/v1/orderservice/order/refresh",
