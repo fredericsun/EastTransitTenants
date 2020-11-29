@@ -1,27 +1,24 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"path/filepath"
 	"time"
 )
 
 type ServiceMetric struct {
 	SelfPercent  float64
+	ServiceDur   float64
 	TotalPercent float64
 	CountPercent float64
-	BottleNeck   bool
 	TotalDur     int64
 	TotalService int
 	TotalSpan    int
 	Load         int
+	BottleNeck   bool
 }
 
-func ConstructTrainingData(spans []MySpan, load int) {
+func ConstructTrainingData(spans []MySpan, load int) []ServiceMetric {
 
-	serMetric := make(map[string]ServiceMetric)
+	var serMetric []ServiceMetric
 
 	serExc := make(map[string]time.Duration)
 	serDur := make(map[string]time.Duration)
@@ -52,11 +49,18 @@ func ConstructTrainingData(spans []MySpan, load int) {
 	}
 	max := time.Second * 0
 	res := ""
+	candidates := make(map[string]bool)
 
 	for serv, dur := range serExc {
 		if dur > max {
 			max = dur
 			res = serv
+		}
+	}
+	candidates[res] = true
+	for serv, dur := range serExc {
+		if float64(dur.Nanoseconds()) >= float64(max.Nanoseconds())*0.7 {
+			candidates[serv] = true
 		}
 	}
 
@@ -67,28 +71,21 @@ func ConstructTrainingData(spans []MySpan, load int) {
 
 	for serv, _ := range serExc {
 		isBottleNeck := false
-		if res == serv {
+		if _, ok := candidates[serv]; ok {
 			isBottleNeck = true
 		}
 		serviceMetric := ServiceMetric{
 			SelfPercent:  float64(serExc[serv].Nanoseconds()) / float64(serDur[serv].Nanoseconds()),
+			ServiceDur:   float64(serDur[serv].Nanoseconds()),
 			TotalPercent: float64(serExc[serv].Nanoseconds()) / float64(totalDur),
 			CountPercent: float64(serCount[serv]) / float64(totalSpan),
-			BottleNeck:   isBottleNeck,
 			TotalDur:     totalDur,
 			TotalService: totalSer,
 			TotalSpan:    totalSpan,
 			Load:         load,
+			BottleNeck:   isBottleNeck,
 		}
-		serMetric[serv] = serviceMetric
+		serMetric = append(serMetric, serviceMetric)
 	}
-	result, err := json.Marshal(serMetric)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	if err := ioutil.WriteFile(filepath.Join("data", "training"), result, 0644); err != nil {
-		fmt.Println(err)
-		return
-	}
+	return serMetric
 }

@@ -6,13 +6,16 @@ import (
 	"net/http"
 )
 
-func SendRequest(url string, body []byte, iteration int) {
+func SendRequest(url string, body []byte, iteration int, bearer string) {
 	finished := make(chan bool)
 
 	request := func() {
 		req, _ := http.NewRequest("POST", url, bytes.NewBuffer(body))
 		req.Header.Set("X-Custom-Header", "loader")
 		req.Header.Set("Content-Type", "application/json")
+		if bearer != "" {
+			req.Header.Add("Authorization", bearer)
+		}
 
 		client := &http.Client{}
 		resp, err := client.Do(req)

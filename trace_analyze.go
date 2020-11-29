@@ -4,12 +4,34 @@ import (
 	"time"
 )
 
-func findBottleNeck(spans []MySpan, spanToServ map[string]string) string {
+func getSortedService(spans []MySpan) []string {
+	servicesCount := make(map[string]int)
+	for _, span := range spans {
+		servicesCount[span.Process.GetServiceName()] += 1
+	}
+	servicesSorted := rankByWordCount(servicesCount)
+	services := make([]string, 0)
+	for _, pair := range servicesSorted {
+		services = append(services, pair.Service)
+	}
+	return services
+}
+
+func findBottleNeck(spans []MySpan) []string {
+	spanToServ := make(map[string]string)
+	for _, span := range spans {
+		spanToServ[span.SpanID] = span.Process.GetServiceName()
+	}
+	// fmt.Println(spanToServ)
+
 	serExc := make(map[string]time.Duration)
 	for _, span := range spans {
 		serExc[span.Process.GetServiceName()] += span.Duration
 		for _, ref := range span.References {
 			if ref["RefType"] == "CHILD_OF" {
+				if _, ok := spanToServ[ref["SpanID"]]; !ok {
+					// fmt.Printf("nonexist: %s\n", ref["SpanID"])
+				}
 				serExc[spanToServ[ref["SpanID"]]] -= span.Duration
 			}
 		}
@@ -24,8 +46,19 @@ func findBottleNeck(spans []MySpan, spanToServ map[string]string) string {
 			res = serv
 		}
 	}
-
-	return res
+	candidates := make(map[string]bool)
+	candidates[res] = true
+	for serv, dur := range serExc {
+		if float64(dur.Nanoseconds()) >= float64(max.Nanoseconds())*0.7 {
+			candidates[serv] = true
+		}
+	}
+	// fmt.Println(serExc)
+	result := make([]string, 0)
+	for serv := range candidates {
+		result = append(result, serv)
+	}
+	return result
 }
 
 type pair struct {
@@ -96,24 +129,24 @@ func exists(a string, list []string) bool {
 }
 
 func CleanupTraces(traces map[string][]MySpan) []string {
-	spanToServ := make(map[string]string)
-	for _, spans := range traces {
-		for _, span := range spans {
-			spanToServ[span.SpanID] = span.Process.GetServiceName()
-		}
-		break
-	}
-
 	bottlenecks := make(map[string]bool)
 	for _, spans := range traces {
-		bottleneck := findBottleNeck(spans, spanToServ)
-		bottlenecks[bottleneck] = true
+		found := findBottleNeck(spans)
+		// fmt.Printf("%s: %s\n", id, bottleneck)
+		for _, bottleneck := range found {
+			bottlenecks[bottleneck] = true
+		}
 	}
 	// fmt.Println(bottlenecks)
 
 	callGraph := make(map[string][]string)
 	root := ""
 	for _, spans := range traces {
+		spanToServ := make(map[string]string)
+		for _, span := range spans {
+			spanToServ[span.SpanID] = span.Process.GetServiceName()
+		}
+
 		for _, span := range spans {
 			serv := span.Process.GetServiceName()
 			if len(span.References) == 0 {
