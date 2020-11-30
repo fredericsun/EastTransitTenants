@@ -10,7 +10,7 @@ import (
 )
 
 const JaegerIP = "localhost:16686"
-const RequestBearer = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmZHNlX21pY3Jvc2VydmljZSIsInJvbGVzIjpbIlJPTEVfVVNFUiJdLCJpZCI6IjRkMmE0NmM3LTcxY2ItNGNmMS1iNWJiLWI2ODQwNmQ5ZGE2ZiIsImlhdCI6MTYwNjY4ODkwNCwiZXhwIjoxNjA2NjkyNTA0fQ.jnTJBJg_PzZlbJw6QTPBsCk9jPpGqkh53JMs94t6Jkk"
+const RequestBearer = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmZHNlX21pY3Jvc2VydmljZSIsInJvbGVzIjpbIlJPTEVfVVNFUiJdLCJpZCI6IjRkMmE0NmM3LTcxY2ItNGNmMS1iNWJiLWI2ODQwNmQ5ZGE2ZiIsImlhdCI6MTYwNjY5OTE4NCwiZXhwIjoxNjA2NzAyNzg0fQ.WoWMyrC5PawJNawpx2eDhaS-Z4A-E350_8UNf20A5DA"
 
 // const RequestUrl = "http://35.231.88.215:32677/api/v1/travel2service/trips/left"
 // const RequestBody = `{"startingPlace":"Shang Hai","endPlace":"Tai Yuan","departureTime":"2020-12-21"}`
@@ -100,19 +100,19 @@ func main() {
 	jaeger_sleep := *sleep
 
 	toRun := make(map[string]RequstData)
-	toRun["search_tickets"] = RequstData{
-		url:  "http://35.225.46.132:32677/api/v1/travel2service/trips/left",
-		body: []byte(`{"startingPlace":"Shang Hai","endPlace":"Tai Yuan","departureTime":"2020-12-21"}`),
-	}
+	// toRun["search_tickets"] = RequstData{
+	// 	url:  "http://35.225.46.132:32677/api/v1/tra2el2serviceips/left",
+	// 	body: []byte(`{"startingPlace":"Shang Hai","endPlac"Tai Yuanuan","departureTime":"2022-21-21"}`),
+	// }
 	toRun["get_orders"] = RequstData{
 		url:  "http://35.225.46.132:32677/api/v1/orderservice/order/refresh",
 		body: []byte(`{"loginId":"4d2a46c7-71cb-4cf1-b5bb-b68406d9da6f","enableStateQuery":false,"enableTravelDateQuery":false,"enableBoughtDateQuery":false,"travelDateStart":null,"travelDateEnd":null,"boughtDateStart":null,"boughtDateEnd":null}`),
 	}
-	toRun["preserve_tickets"] = RequstData{
-		url:    "http://35.225.46.132:32677/api/v1/preserveotherservice/preserveOther",
-		body:   []byte(`{"accountId":"4d2a46c7-71cb-4cf1-b5bb-b68406d9da6f","contactsId":"9b15edd9-ead7-477e-836b-fae38223bb40","tripId":"T1235","seatType":"2","date":"2020-12-21","from":"Shang Hai","to":"Tai Yuan","assurance":"0","foodType":1,"foodName":"Bone Soup","foodPrice":2.5,"stationName":"","storeName":""}`),
-		bearer: RequestBearer,
-	}
+	// toRun["preserve_tickets"] = RequstData{
+	// 	url:    "http://35.225.46.132:32677/api/v1/preserveotherservice/preserveOther",
+	// 	body:   []byte(`{"accountId":"4d2a46c7-71cb-4cf1-b5bb-b68406d9da6f","contactsId":"9b15edd9-ead7-477e-836b-fae38223bb40","tripId":"T1235","seatType":"2","date":"2020-12-21","from":"Shang Hai","to":"Tai Yuan","assurance":"0","foodType":1,"foodName":"Bone Soup","foodPrice":2.5,"stationName":"","storeName":""}`),
+	// 	bearer: RequestBearer,
+	// }
 
 	for filename, requestData := range toRun {
 		for _, iteration := range []int{1, 10, 100} {
