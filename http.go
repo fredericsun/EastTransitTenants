@@ -11,6 +11,7 @@ func SendRequest(url string, body []byte, iteration int, bearer string) {
 
 	request := func() {
 		req, _ := http.NewRequest("POST", url, bytes.NewBuffer(body))
+		req.Close = true
 		req.Header.Set("X-Custom-Header", "loader")
 		req.Header.Set("Content-Type", "application/json")
 		if bearer != "" {
@@ -23,12 +24,12 @@ func SendRequest(url string, body []byte, iteration int, bearer string) {
 			panic(err)
 		}
 		defer resp.Body.Close()
-		fmt.Println("response Status:", resp.Status)
 		if resp.Status == "200 OK" {
 			finished <- true
 		} else {
 			finished <- false
 		}
+		fmt.Println("response Status:", resp.Status)
 	}
 	for i := 0; i < iteration; i++ {
 		go request()

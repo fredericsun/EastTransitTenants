@@ -8,7 +8,7 @@ import (
 var format = `apiVersion: networking.istio.io/v1alpha3
 kind: VirtualService
 metadata:
-  name: seat-latency
+  name: %s-latency
 spec:
   hosts:
   - %s
@@ -25,13 +25,20 @@ spec:
     - destination:
         host: %s`
 
-func contruct_yaml(service string, latency_ms int) string {
-	content := fmt.Sprintf(format, service, latency_ms, service, service)
+func constructYaml(service string, latency_ms int) string {
+	content := fmt.Sprintf(format, service, service, latency_ms, service, service)
 	return content
 }
 
-func inject_latency() {
-	cmd := exec.Command("sh", "latency.sh")
-	res, _ := cmd.Output()
+func injectLatency(service string, latency_ms int) {
+	cmdFormat := `cat <<EOF | kubectl apply -f -
+  %s
+  EOF`
+	yamlContent := constructYaml(service, latency_ms)
+	command := fmt.Sprintf(cmdFormat, yamlContent)
+	cmd := exec.Command(command)
+	res, _ := cmd.CombinedOutput()
 	fmt.Println(string(res))
 }
+
+func deleteLatency() {}
