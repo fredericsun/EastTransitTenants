@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,7 +15,7 @@ const RequestBearer = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmZHNlX21pY3Jvc2Vyd
 // const RequestBody = `{"startingPlace":"Shang Hai","endPlace":"Tai Yuan","departureTime":"2020-12-21"}`
 // const filename = "ticket_reserve"
 
-type RequstData struct {
+type RequestData struct {
 	url    string
 	body   []byte
 	bearer string
@@ -90,37 +89,45 @@ func generate(url string, body []byte, bearer string, filename string, iteration
 // url := "http://35.231.88.215:32677/api/v1/preserveotherservice/preserveOther"
 // body := []byte(`{"accountId":"4d2a46c7-71cb-4cf1-b5bb-b68406d9da6f","contactsId":"8bfcba2c-c777-459b-aeb8-c07a22b489de","tripId":"Z1234","seatType":"2","date":"2020-12-22","from":"Shang Hai","to":"Tai Yuan","assurance":"0","foodType":1,"foodName":"Bone Soup","foodPrice":2.5,"stationName":"","storeName":""}`)
 
-func main() {
-	// batch := flag.Int("load", 100, "requests batch size")
-	// target := flag.String("target", "", "get traces involving such service")
-	sleep := flag.Int("sleep", 5, "Wait until Jaeger is updated")
-	flag.Parse()
-	// iteration := *batch
-	target_service := "ts-ui-dashboard.default"
-	jaeger_sleep := *sleep
-
-	toRun := make(map[string]RequstData)
-	// toRun["search_tickets"] = RequstData{
-	// 	url:  "http://35.225.46.132:32677/api/v1/tra2el2serviceips/left",
-	// 	body: []byte(`{"startingPlace":"Shang Hai","endPlac"Tai Yuanuan","departureTime":"2022-21-21"}`),
-	// }
-	toRun["get_orders"] = RequstData{
+var ToRun = map[string]RequestData{
+	"search_tickets": RequestData{
+		url:  "http://35.225.46.132:32677/api/v1/tra2el2serviceips/left",
+		body: []byte(`{"startingPlace":"Shang Hai","endPlac"Tai Yuanuan","departureTime":"2022-21-21"}`),
+	},
+	"get_orders": RequestData{
 		url:  "http://35.225.46.132:32677/api/v1/orderservice/order/refresh",
 		body: []byte(`{"loginId":"4d2a46c7-71cb-4cf1-b5bb-b68406d9da6f","enableStateQuery":false,"enableTravelDateQuery":false,"enableBoughtDateQuery":false,"travelDateStart":null,"travelDateEnd":null,"boughtDateStart":null,"boughtDateEnd":null}`),
-	}
-	// toRun["preserve_tickets"] = RequstData{
-	// 	url:    "http://35.225.46.132:32677/api/v1/preserveotherservice/preserveOther",
-	// 	body:   []byte(`{"accountId":"4d2a46c7-71cb-4cf1-b5bb-b68406d9da6f","contactsId":"9b15edd9-ead7-477e-836b-fae38223bb40","tripId":"T1235","seatType":"2","date":"2020-12-21","from":"Shang Hai","to":"Tai Yuan","assurance":"0","foodType":1,"foodName":"Bone Soup","foodPrice":2.5,"stationName":"","storeName":""}`),
-	// 	bearer: RequestBearer,
-	// }
+	},
+	"preserve_tickets": RequestData{
+		url:    "http://35.225.46.132:32677/api/v1/preserveotherservice/preserveOther",
+		body:   []byte(`{"accountId":"4d2a46c7-71cb-4cf1-b5bb-b68406d9da6f","contactsId":"9b15edd9-ead7-477e-836b-fae38223bb40","tripId":"T1235","seatType":"2","date":"2020-12-21","from":"Shang Hai","to":"Tai Yuan","assurance":"0","foodType":1,"foodName":"Bone Soup","foodPrice":2.5,"stationName":"","storeName":""}`),
+		bearer: RequestBearer,
+	},
+}
 
-	for filename, requestData := range toRun {
+func generateTrainingData() {
+	// batch := flag.Int("load", 100, "requests batch size")
+	// target := flag.String("target", "", "get traces involving such service")
+	// iteration := *batch
+	target_service := "ts-ui-dashboard.default"
+	jaeger_sleep := 5
+
+	for filename, requestData := range ToRun {
 		for _, iteration := range []int{1, 10, 100} {
 			generate(requestData.url, requestData.body, requestData.bearer, filename, iteration, target_service, jaeger_sleep)
 		}
 	}
 }
 
-// func main() {
-// 	inject_latency()
-// }
+func main() {
+	url := ToRun["search_tickets"].url
+	body := ToRun["search_tickets"].body
+	writePath(url, string(body), "", 1, 3, "ts-ui-dashboard.default")
+	// m := predict()
+	// for service, value := range m {
+	// 	if value {
+	// 		// look for boundary
+	// 		lookForBoundary(service)
+	// 	}
+	// }
+}

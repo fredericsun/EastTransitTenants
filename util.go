@@ -35,9 +35,9 @@ func rankByWordCount(wordFrequencies map[string]int) PairList {
 	return pl
 }
 
-func writePath(load int, jaeger_sleep int, target_service string) {
+func writePath(requestUrl string, requestBody string, requestBearer string, load int, jaeger_sleep int, target_service string) {
 	startTime := time.Now()
-	SendRequest(RequestUrl, []byte(RequestBody), load, RequestBearer)
+	SendRequest(requestUrl, []byte(requestBody), load, requestBearer)
 	time.Sleep(time.Duration(jaeger_sleep) * time.Second)
 
 	jc := NewJaegerClient(JaegerIP)
@@ -57,7 +57,7 @@ func writePath(load int, jaeger_sleep int, target_service string) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	f, err := os.OpenFile(filepath.Join("data", fmt.Sprintf("path.json")), os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(filepath.Join("data", "test", fmt.Sprintf("path.json")), os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -67,7 +67,7 @@ func writePath(load int, jaeger_sleep int, target_service string) {
 	}
 }
 
-func predict() {
+func predict() map[string]bool {
 	exec.Command("python", "model.py").Run()
 	time.Sleep(time.Duration(3) * time.Second)
 	data, _ := ioutil.ReadFile("output.json")
@@ -75,5 +75,57 @@ func predict() {
 	if err := json.Unmarshal(data, &m); err != nil {
 		fmt.Println("Error: ", err)
 	}
-	fmt.Println(m)
+	return m
+}
+
+func bottleneckChanged(request RequestData, service string, latency_ms int, jc *JaegerClient) bool {
+	batch := 5
+	jeagerSleep := 3 * time.Second
+	channel := make(chan bool)
+
+	virtualSpeedUp(service, latency_ms)
+	startTime := time.Now()
+	SendRequest(request.url, request.body, batch, request.bearer)
+	go removeVirtualSpeedUp(channel)
+	time.Sleep(jeagerSleep)
+	traces, err := jc.QueryTraces("ts-ui-dashboard.default", "", startTime, 0)
+	if err != nil {
+		fmt.Println(err)
+		<-channel
+		return false
+	}
+	count := 0
+	for _, trace := range traces {
+		bottleneck := findCurrentBottleneck(trace, service, latency_ms)
+		if bottleneck == service {
+			count++
+		}
+	}
+	<-channel
+	return count <= batch/2
+}
+
+func lookForBoundary(request RequestData, service string, precision_ms int) int {
+	jc := NewJaegerClient(JaegerIP)
+	lo := 0
+	hi := precision_ms
+	for hi < 30000 {
+		if bottleneckChanged(request, service, hi, jc) {
+			break
+		}
+		lo = hi
+		hi *= 2
+	}
+	if hi >= 30000 {
+		panic(fmt.Errorf("Testing Hi of %d to change bottleneck, something is wrong", hi))
+	}
+	for hi-lo > precision_ms {
+		mid := (hi + lo) / 2
+		if !bottleneckChanged(request, service, mid, jc) {
+			lo = mid + 1
+		} else {
+			hi = mid
+		}
+	}
+	return (hi + lo) / 2
 }

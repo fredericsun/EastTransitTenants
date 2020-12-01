@@ -23,13 +23,14 @@ func SendRequest(url string, body []byte, iteration int, bearer string) {
 		if err != nil {
 			panic(err)
 		}
-		defer resp.Body.Close()
-		if resp.Status == "200 OK" {
+		status := resp.Status
+		resp.Body.Close()
+		if status == "200 OK" {
 			finished <- true
 		} else {
 			finished <- false
 		}
-		fmt.Println("response Status:", resp.Status)
+		fmt.Println("response Status:", status)
 	}
 	for i := 0; i < iteration; i++ {
 		go request()

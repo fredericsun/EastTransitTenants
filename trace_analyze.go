@@ -17,7 +17,47 @@ func getSortedService(spans []MySpan) []string {
 	return services
 }
 
-func findBottleNeck(spans []MySpan) []string {
+func findCurrentBottleneck(spans []MySpan, boostedService string, latency_ms int) string {
+	spanToServ := make(map[string]string)
+	latency := time.Millisecond * time.Duration(latency_ms)
+	for _, span := range spans {
+		spanToServ[span.SpanID] = span.Process.GetServiceName()
+	}
+	// fmt.Println(spanToServ)
+
+	serExc := make(map[string]time.Duration)
+	for _, span := range spans {
+		servName := span.Process.GetServiceName()
+		serExc[servName] += span.Duration
+		for _, ref := range span.References {
+			if ref["RefType"] == "CHILD_OF" {
+				// if _, ok := spanToServ[ref["SpanID"]]; !ok {
+				// 	fmt.Printf("nonexist: %s\n", ref["SpanID"])
+				// }
+				parentName := spanToServ[ref["SpanID"]]
+				serExc[parentName] -= span.Duration
+
+				if servName != boostedService {
+					serExc[parentName] -= latency
+					serExc[servName] += latency
+				}
+			}
+		}
+	}
+
+	max := time.Second * 0
+	res := ""
+
+	for serv, dur := range serExc {
+		if dur > max {
+			max = dur
+			res = serv
+		}
+	}
+	return res
+}
+
+func findPotentialBottleNecks(spans []MySpan) []string {
 	spanToServ := make(map[string]string)
 	for _, span := range spans {
 		spanToServ[span.SpanID] = span.Process.GetServiceName()
@@ -130,7 +170,7 @@ func exists(a string, list []string) bool {
 
 func CleanupTrace(spans []MySpan) []string {
 	bottlenecks := make(map[string]bool)
-	for _, bottleneck := range findBottleNeck(spans) {
+	for _, bottleneck := range findPotentialBottleNecks(spans) {
 		bottlenecks[bottleneck] = true
 	}
 
@@ -163,7 +203,7 @@ func CleanupTrace(spans []MySpan) []string {
 func CleanupTraces(traces map[string][]MySpan) []string {
 	bottlenecks := make(map[string]bool)
 	for _, spans := range traces {
-		found := findBottleNeck(spans)
+		found := findPotentialBottleNecks(spans)
 		for _, bottleneck := range found {
 			bottlenecks[bottleneck] = true
 		}
