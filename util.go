@@ -67,19 +67,23 @@ func writePath(requestUrl string, requestBody string, requestBearer string, load
 	}
 }
 
-func predict() map[string]bool {
-	exec.Command("python", "model.py").Run()
+func train() {
+	exec.Command("python", "train.py").Run()
 	time.Sleep(time.Duration(3) * time.Second)
+}
+
+func predict() map[string]bool {
+	exec.Command("python", "predict.py").Run()
 	data, _ := ioutil.ReadFile("output.json")
 	var m map[string]bool
+
 	if err := json.Unmarshal(data, &m); err != nil {
 		fmt.Println("Error: ", err)
 	}
 	return m
 }
 
-func bottleneckChanged(request RequestData, service string, latency_ms int, jc *JaegerClient) bool {
-	batch := 5
+func bottleneckChanged(request RequestData, service string, latency_ms int, jc *JaegerClient, batch int) bool {
 	jeagerSleep := 3 * time.Second
 	channel := make(chan bool)
 
@@ -88,7 +92,7 @@ func bottleneckChanged(request RequestData, service string, latency_ms int, jc *
 	SendRequest(request.url, request.body, batch, request.bearer)
 	go removeVirtualSpeedUp(channel)
 	time.Sleep(jeagerSleep)
-	traces, err := jc.QueryTraces("ts-ui-dashboard.default", "", startTime, 0)
+	traces, err := jc.QueryTraces("ts-travel2-service", "", startTime, 0)
 	if err != nil {
 		fmt.Println(err)
 		<-channel
@@ -97,6 +101,7 @@ func bottleneckChanged(request RequestData, service string, latency_ms int, jc *
 	count := 0
 	for _, trace := range traces {
 		bottleneck := findCurrentBottleneck(trace, service, latency_ms)
+		fmt.Printf("found bottleneck: %s\n", bottleneck)
 		if bottleneck == service {
 			count++
 		}
@@ -105,12 +110,12 @@ func bottleneckChanged(request RequestData, service string, latency_ms int, jc *
 	return count <= batch/2
 }
 
-func lookForBoundary(request RequestData, service string, precision_ms int) int {
+func lookForBoundary(request RequestData, service string, precision_ms int, load int) int {
 	jc := NewJaegerClient(JaegerIP)
 	lo := 0
 	hi := precision_ms
 	for hi < 30000 {
-		if bottleneckChanged(request, service, hi, jc) {
+		if bottleneckChanged(request, service, hi, jc, load) {
 			break
 		}
 		lo = hi
@@ -121,11 +126,65 @@ func lookForBoundary(request RequestData, service string, precision_ms int) int 
 	}
 	for hi-lo > precision_ms {
 		mid := (hi + lo) / 2
-		if !bottleneckChanged(request, service, mid, jc) {
+		if !bottleneckChanged(request, service, mid, jc, load) {
 			lo = mid + 1
 		} else {
 			hi = mid
 		}
 	}
 	return (hi + lo) / 2
+}
+
+func generate(url string, body []byte, bearer string, filename string, iteration int, target_service string, jaeger_sleep int) {
+	fmt.Printf("%s: Sending %d request at one time for %d iterations\n", filename, 100/iteration, iteration)
+
+	var trainData []ServiceMetric
+	for i := 0; i < 100/iteration; i++ {
+		/*************************
+		Generate requests
+		*************************/
+		startTime := time.Now()
+		SendRequest(url, []byte(body), iteration, bearer)
+		fmt.Println("Request generation completed")
+		time.Sleep(time.Duration(jaeger_sleep) * time.Second)
+
+		/*************************
+		Get tracing information
+		*************************/
+		// Create jaeger service client
+		jc := NewJaegerClient(JaegerIP)
+		// Query traces
+		traces, err := jc.QueryTraces(target_service, "", startTime, 0)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		// Construct training data
+		for _, trace := range traces {
+			critcalPath := CleanupTrace(trace)
+			serMetric := ConstructTrainingData(trace, iteration, critcalPath)
+			trainData = append(trainData, serMetric...)
+		}
+	}
+	result, err := json.Marshal(trainData)
+	if err != nil {
+		fmt.Println(err)
+	}
+	f, err := os.OpenFile(filepath.Join("data", fmt.Sprintf("%s_%d.json", filename, iteration)), os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer f.Close()
+	if _, err := f.Write(result); err != nil {
+		fmt.Println(err)
+	}
+}
+
+func generateTrainingData(requests []TrainRequestData, bearer string, workload []int, target_service string) {
+	for _, requestData := range requests {
+		for _, iteration := range workload {
+			generate(requestData.url, []byte(requestData.body), bearer, requestData.name, iteration, target_service, jaeger_sleep)
+		}
+	}
 }
