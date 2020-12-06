@@ -1,10 +1,11 @@
 # EastTransitTenants
 
-This project is a performance profiling and bottleneck analysis framework built on top of an open-source railway ticketingmicroservices system. From a big picture,our framework consists of five components:
-1)orchestrator:coordinate the interaction of other functional components;
-2)load generator: generate workload for training and profiling purpose;  
-3)benchmark application:  an opensource railway ticketing microservices system which contains 41 mi-croservices and whose request can involve up to 200 spans (You can get more details at [Wiki Pages](https://github.com/FudanSELab/train-ticket/wiki).); 
-4)bottleneck discover: find all potential bottleneck services ina time-efficient way; 
+## Introduction
+This project is a performance profiling and bottleneck analysis framework built on top of an open-source railway ticketingmicroservices system. From a big picture,our framework consists of five components:<br />
+1)orchestrator:coordinate the interaction of other functional components;<br />
+2)load generator: generate workload for training and profiling purpose;<br />
+3)benchmark application:  an opensource railway ticketing microservices system which contains 41 mi-croservices and whose request can involve up to 200 spans (You can get more details at https://github.com/FudanSELab/train-ticket/wiki);<br /> 
+4)bottleneck discover: find all potential bottleneck services ina time-efficient way;<br />
 5)performance profiler: instrumentallyprofile how a service influencing the end-to-end performanceof the requests it belongs to.
 
 ## Service Architecture Graph
