@@ -2,14 +2,21 @@
 
 ## Introduction
 This project is a performance profiling and bottleneck analysis framework built on top of an open-source railway ticketingmicroservices system. From a big picture,our framework consists of five components:<br />
-- 1)orchestrator:coordinate the interaction of other functional components;<br /><br />
-- 2)load generator: generate workload for training and profiling purpose;<br /><br />
-- 3)benchmark application:  an opensource railway ticketing microservices system which contains 41 mi-croservices and whose request can involve up to 200 spans (You can get more details at https://github.com/FudanSELab/train-ticket/wiki);<br /><br />
-- 4)bottleneck discover: find all potential bottleneck services ina time-efficient way;<br /><br />
-- 5)performance profiler: instrumentallyprofile how a service influencing the end-to-end performanceof the requests it belongs to.
+- orchestrator:coordinate the interaction of other functional components;<br /><br />
+- load generator: generate workload for training and profiling purpose;<br /><br />
+- benchmark application:  an opensource railway ticketing microservices system which contains 41 mi-croservices and whose request can involve up to 200 spans (You can get more details at https://github.com/FudanSELab/train-ticket/wiki);<br /><br />
+- bottleneck discover: find all potential bottleneck services ina time-efficient way;<br /><br />
+- performance profiler: instrumentallyprofile how a service influencing the end-to-end performanceof the requests it belongs to.
 
 ## Architecture Graph
 ![architecture](./architecture.png)
+
+## Dependencies
+- ```Golang```
+- python dependencies
+    - ```pandas```
+    - ```sklearn```
+    - ```joblib```
 
 ## Usage
 First, build the framework with:
@@ -42,6 +49,8 @@ The input configurations are defined in ```train_config.json ```. We have provid
 go build
 ./easttransittenants -type=train
 ```
+
+> We provided some example training data under ```/data``` directory
 
 ### Profile the Bottleneck
 #### 1. Configuration for profiling
