@@ -38,31 +38,36 @@ The input configurations are defined in ```train_config.json ```. We have provid
 - target_serv: the entrance service for all requests to your application, which is normally the front-end service.
 
 #### 2. Train the model
-```./easttransittenants -type=train```
-
-#### Presequisite
-* Docker
-* Docker Compose
-
-#### 1. Clone the Repository
-```bash
-git clone --depth=1 https://github.com/FudanSELab/train-ticket.git
-cd train-ticket/
+```
+go build
+./easttransittenants -type=train
 ```
 
-#### 2. Start the Application
-```bash
-docker-compose -f deployment/docker-compose-manifests/quickstart-docker-compose.yml up
+### Profile the Bottleneck
+#### 1. Configuration for profiling
+The configurations for profiling are defined in ```profile_config.json```.
 ```
-Once the application starts, you can visit the Train Ticket web page at [http://localhost:8080](http://localhost:8080).
-
-### Using Kubernetes
-Here is the steps to deploy the Train Ticket onto any existing Kubernetes cluster.
-
-#### Presequisite
-* An existing Kubernetes cluster
-
+{
+    "jaeger_ip": "35.231.88.215:32688",
+    "request": {
+            "bearer": "",
+            "name": "search_tickets",
+            "url": "http://35.231.88.215:32677/api/v1/travel2service/trips/left",
+            "body": "{\"startingPlace\": \"Shang Hai\",\"endPlace\": \"Tai Yuan\",\"departureTime\": \"2020-12-21\"}"
+    },
+    "workload": 10,
+    "target_serv": "ts-travel2-service",
+    "precision_ms": 25
+}
 ```
+- jaeger_ip: the address of the Jaeger deployment, used by our jaeger client to query trace data
+- request: the target request to profile
+- workload: target workload level
+- target_serv: the entrance service for the request to the application
+- precision_ms: desired precision of the bottleneck switching boundary in milliseconds
 
-
-
+#### 2. Do Profile
+```
+go build
+./easttransittenants -type=profile
+```
