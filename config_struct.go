@@ -7,30 +7,29 @@ type RequestData struct {
 }
 
 type ProfileRequestData struct {
-	url    string
-	body   string
-	bearer string
+	Url    string `json:"url"`
+	Body   string `json:"body"`
+	Bearer string `json:"bearer"`
 }
 
 type TrainRequestData struct {
-	name string
-	url  string
-	body string
+	Name string `json:"name"`
+	Url  string `json:"url"`
+	Body string `json:"body"`
 }
 
 type TrainConfig struct {
-	request     []TrainRequestData
-	bearer      string
-	jaeger_ip   string
-	workload    []int
-	target_serv string
+	Request     []TrainRequestData `json:"request"`
+	Bearer      string             `json:"bearer"`
+	Jaeger_ip   string             `json:"jaeger_ip"`
+	Workload    []int              `json:"workload"`
+	Target_serv string             `json:"target_serv"`
 }
 
 type ProfileConfig struct {
-	jaeger_ip     string
-	request       ProfileRequestData
-	workload      int
-	entrance_serv string
-	target_serv   string
-	precision     int
+	Jaeger_ip   string             `json:"jaeger_ip"`
+	Request     ProfileRequestData `json:"request"`
+	Workload    int                `json:"workload"`
+	Target_serv string             `json:"target_serv"`
+	Precision   int                `json:"precision_ms"`
 }

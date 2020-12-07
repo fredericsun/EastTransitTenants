@@ -57,7 +57,8 @@ func writePath(requestUrl string, requestBody string, requestBearer string, load
 	if err != nil {
 		fmt.Println(err)
 	}
-	f, err := os.OpenFile(filepath.Join("data", "test", fmt.Sprintf("path.json")), os.O_CREATE|os.O_WRONLY, 0644)
+
+	f, err := os.OpenFile(filepath.Join("path", fmt.Sprintf("path.json")), os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -68,18 +69,22 @@ func writePath(requestUrl string, requestBody string, requestBearer string, load
 }
 
 func train() {
-	exec.Command("python", "train.py").Run()
+	fmt.Println("Start to train model")
+	exec.Command("python3", "train.py").Run()
 	time.Sleep(time.Duration(3) * time.Second)
 }
 
 func predict() map[string]bool {
-	exec.Command("python", "predict.py").Run()
-	data, _ := ioutil.ReadFile("output.json")
-	var m map[string]bool
+	fmt.Println("Start to predict bottlenecks")
+	exec.Command("python3", "predict.py").Run()
+	time.Sleep(time.Duration(3) * time.Second)
 
+	data, _ := ioutil.ReadFile("path/output.json")
+	var m map[string]bool
 	if err := json.Unmarshal(data, &m); err != nil {
 		fmt.Println("Error: ", err)
 	}
+	fmt.Println(m)
 	return m
 }
 
@@ -184,7 +189,7 @@ func generate(url string, body []byte, bearer string, filename string, iteration
 func generateTrainingData(requests []TrainRequestData, bearer string, workload []int, target_service string) {
 	for _, requestData := range requests {
 		for _, iteration := range workload {
-			generate(requestData.url, []byte(requestData.body), bearer, requestData.name, iteration, target_service, jaeger_sleep)
+			generate(requestData.Url, []byte(requestData.Body), bearer, requestData.Name, iteration, target_service, jaeger_sleep)
 		}
 	}
 }

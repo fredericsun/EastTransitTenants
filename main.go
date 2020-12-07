@@ -33,39 +33,42 @@ func main() {
 	if task_type == "train" {
 		var config TrainConfig
 		config_json, _ := ioutil.ReadFile("train_config.json")
-		json.Unmarshal([]byte(config_json), &config)
-		JaegerIP = config.jaeger_ip
-		generateTrainingData(config.request, config.bearer, config.workload, config.target_serv)
+		err := json.Unmarshal(config_json, &config)
+		if err != nil {
+			panic(fmt.Errorf("Error in parsing json %v", err))
+		}
+		JaegerIP = config.Jaeger_ip
+		generateTrainingData(config.Request, config.Bearer, config.Workload, config.Target_serv)
 		train()
 	}
 	if task_type == "profile" {
 		var config ProfileConfig
 		config_json, _ := ioutil.ReadFile("profile_config.json")
 		json.Unmarshal([]byte(config_json), &config)
-		JaegerIP = config.jaeger_ip
-		writePath(config.request.url, config.request.body, config.request.bearer, config.workload, jaeger_sleep, config.target_serv)
+		JaegerIP = config.Jaeger_ip
+		writePath(config.Request.Url, config.Request.Body, config.Request.Bearer, config.Workload, jaeger_sleep, config.Target_serv)
 		bottlenecks := predict()
 
 		requestData := RequestData{
-			url:    config.request.url,
-			body:   []byte(config.request.body),
-			bearer: config.request.bearer,
+			url:    config.Request.Url,
+			body:   []byte(config.Request.Body),
+			bearer: config.Request.Bearer,
 		}
 
 		for name, isBottleneck := range bottlenecks {
 			if isBottleneck {
-				boundary := lookForBoundary(requestData, name, config.precision, config.workload)
-				if boundary == config.precision/2 {
+				boundary := lookForBoundary(requestData, name, config.Precision, config.Workload)
+				if boundary == config.Precision/2 {
 					fmt.Println("Cannot find the boundary of the current service")
 					continue
 				}
 				// end-to-end baseline
 				virtualSpeedUp("everything", boundary)
-				baseline := SendRequest(requestData.url, requestData.body, config.workload, requestData.bearer)
+				baseline := SendRequest(requestData.url, requestData.body, config.Workload, requestData.bearer)
 				removeVirtualSpeedUp(nil)
 
 				virtualSpeedUp(name, boundary)
-				speedupResult := SendRequest(requestData.url, requestData.body, config.workload, requestData.bearer)
+				speedupResult := SendRequest(requestData.url, requestData.body, config.Workload, requestData.bearer)
 				removeVirtualSpeedUp(nil)
 
 				fmt.Printf("baseline %dms, simulation %dms, improved %dms\n", baseline, speedupResult, (baseline - speedupResult))
